@@ -12,8 +12,6 @@ import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-import static br.com.dio.persistence.config.ConnectionConfig.getConnection;
-
 @AllArgsConstructor
 public class MigrationStrategy {
 
@@ -22,11 +20,11 @@ public class MigrationStrategy {
     public void executeMigration(){
         var originalOut = System.out;
         var originalErr = System.err;
-        try(var fos = new FileOutputStream("liquibase.log")){
-            System.setOut(new PrintStream(fos));
-            System.setErr(new PrintStream(fos));
+        try(var fos = new FileOutputStream("liquibase.log");
+            var logStream = new PrintStream(fos)){
+            System.setOut(logStream);
+            System.setErr(logStream);
             try(
-                    var connection = getConnection();
                     var jdbcConnection = new JdbcConnection(connection);
             ){
                 var liquibase = new Liquibase(
@@ -34,9 +32,8 @@ public class MigrationStrategy {
                         new ClassLoaderResourceAccessor(),
                         jdbcConnection);
                 liquibase.update();
-            } catch (SQLException | LiquibaseException e) {
+            } catch (LiquibaseException e) {
                 e.printStackTrace();
-                System.setErr(originalErr);
             }
         } catch (IOException ex){
             ex.printStackTrace();
